@@ -1,0 +1,12 @@
+h5py
+tensorflow
+keras
+numpy
+matplotlib
+opencv-python
+pypng
+
+cython
+contextlib2
+jupyter
+pandas
