@@ -12,8 +12,6 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 from object_detection.utils import dataset_util
 
-os.chdir('/home/dsesposito/Facultad/RedesNeuronales/TpFinal')
-
 
 class DataLabel(object):
     def __init__(self):
@@ -57,15 +55,17 @@ class DataSetHandler(object):
         if not os.path.exists(join(path, 'validation')):
             os.mkdir(join(path, 'validation'))
 
-        for sub_data_set, sub_data_set_type in zip([self.train, self.test, self.val], ['train', 'test', 'validation']):
+        for sub_data_set, sub_data_set_type in zip([self.train, self.test, self.val],
+                                                   ['train', 'test', 'validation']):
             sub_data_set_path = join(path, sub_data_set_type)
 
-            for (index, (image, categorical_label)) in enumerate(zip(sub_data_set.data, sub_data_set.labels)):
-                if index >= 0.1*len(sub_data_set.data):
+            for (index, (image, categorical_label)) in enumerate(
+                    zip(sub_data_set.data, sub_data_set.labels)):
+                if index >= 0.1 * len(sub_data_set.data):
                     break
                 label = int(np.argmax(categorical_label, axis=None, out=None))
                 class_name = self.classes_name[label]
-                image = image*255
+                image = image * 255
                 image = image.reshape(image.shape[0], image.shape[1])
                 image = image.astype(np.uint8)
                 class_path = join(sub_data_set_path, class_name)
@@ -81,7 +81,8 @@ class DataSetHandler(object):
             return
 
         path = join(os.getcwd(), 'dataset')
-        files = [file for file in listdir(path) if isfile(join(path, file)) and file != 'quick_draw_dataset.hdf5']
+        files = [file for file in listdir(path) if
+                 isfile(join(path, file)) and file != 'quick_draw_dataset.hdf5']
         amt_classes = len(files)
         amt_train_images = 10000
         amt_test_images = 1000
@@ -91,11 +92,11 @@ class DataSetHandler(object):
         tot_amt_val_images = amt_classes * amt_val_images
         image_with_height = 28
         train_images = np.zeros((tot_amt_train_images, image_with_height, image_with_height, 1))
-        train_labels = np.zeros((tot_amt_train_images, ))
+        train_labels = np.zeros((tot_amt_train_images,))
         test_images = np.zeros((tot_amt_test_images, image_with_height, image_with_height, 1))
-        test_labels = np.zeros((tot_amt_test_images, ))
+        test_labels = np.zeros((tot_amt_test_images,))
         val_images = np.zeros((tot_amt_val_images, image_with_height, image_with_height, 1))
-        val_labels = np.zeros((tot_amt_val_images, ))
+        val_labels = np.zeros((tot_amt_val_images,))
         classes_name = []
         for index, file in enumerate(files):
             file_name = os.path.splitext(file)[0]
@@ -104,9 +105,12 @@ class DataSetHandler(object):
             class_images = np.load(join(path, file))
             class_images = class_images.astype(np.float32) / 255
             np.random.shuffle(class_images)
-            class_images = class_images.reshape((len(class_images), image_with_height, image_with_height, 1))
-            train_images[index*amt_train_images:(index+1)*amt_train_images] = class_images[0:amt_train_images, :, :, :]
-            train_labels[index*amt_train_images:(index+1)*amt_train_images] = index
+            class_images = class_images.reshape(
+                (len(class_images), image_with_height, image_with_height, 1))
+            train_images[index * amt_train_images:(index + 1) * amt_train_images] = class_images[
+                                                                                    0:amt_train_images,
+                                                                                    :, :, :]
+            train_labels[index * amt_train_images:(index + 1) * amt_train_images] = index
 
             test_images[index * amt_test_images:(index + 1) * amt_test_images] = \
                 class_images[amt_train_images:(amt_train_images + amt_test_images), :, :, :]
@@ -169,7 +173,8 @@ class ObjectDetectionDataSetHandler(object):
         self.classes_name = []
         self.loaded = False
 
-        names = ['size_x', 'size_y', 'class_name_index', 'corner_y', 'corner_x', 'corner_y2', 'corner_x2']
+        names = ['size_x', 'size_y', 'class_name_index', 'corner_y', 'corner_x', 'corner_y2',
+                 'corner_x2']
         formats = [np.uint8, np.uint8, np.uint8, np.uint8, np.uint8, np.uint8, np.uint8]
         self.labels_type = dict(names=names, formats=formats)
 
@@ -198,24 +203,29 @@ class ObjectDetectionDataSetHandler(object):
         raw_data_set.data = raw_data_set.data * 255
         raw_data_set.data = raw_data_set.data.astype(np.uint8)
         raw_data_set.data = raw_data_set.data[:amt_divisible, :, :]
-        raw_data_set.data = raw_data_set.data.reshape((total_amt_images//images_amt_per_canvas,
-                                                       images_amt_per_canvas, raw_data_set.data.shape[1],
+        raw_data_set.data = raw_data_set.data.reshape((total_amt_images // images_amt_per_canvas,
+                                                       images_amt_per_canvas,
+                                                       raw_data_set.data.shape[1],
                                                        raw_data_set.data.shape[2]))
 
         raw_data_set.labels = np.argmax(raw_data_set.labels, axis=1).astype(np.uint8)
         raw_data_set.labels = raw_data_set.labels[:amt_divisible]
-        raw_data_set.labels = raw_data_set.labels.reshape((total_amt_images//images_amt_per_canvas,
-                                                           images_amt_per_canvas))
+        raw_data_set.labels = raw_data_set.labels.reshape(
+            (total_amt_images // images_amt_per_canvas,
+             images_amt_per_canvas))
 
         self._combine_drawings(raw_data_set, combined_data_set)
 
     def _combine_drawings(self, raw_data_set, combined_data_set):
-        combined_data_set.data = np.zeros((raw_data_set.data.shape[0], self.canvas_size[0], self.canvas_size[1]),
-                                          dtype=np.uint8)
+        combined_data_set.data = np.zeros(
+            (raw_data_set.data.shape[0], self.canvas_size[0], self.canvas_size[1]),
+            dtype=np.uint8)
 
-        combined_data_set.labels = np.zeros((raw_data_set.labels.shape[0], raw_data_set.labels.shape[1]),
-                                            dtype=self.labels_type)
-        for index, (drawings_group, labels_group) in enumerate(zip(raw_data_set.data, raw_data_set.labels)):
+        combined_data_set.labels = np.zeros(
+            (raw_data_set.labels.shape[0], raw_data_set.labels.shape[1]),
+            dtype=self.labels_type)
+        for index, (drawings_group, labels_group) in enumerate(
+                zip(raw_data_set.data, raw_data_set.labels)):
             canvas, annotation = self._combine_drawings_group(drawings_group, labels_group)
             combined_data_set.data[index, :, :] = canvas
             combined_data_set.labels[index, :] = annotation
@@ -224,14 +234,16 @@ class ObjectDetectionDataSetHandler(object):
         canvas = np.zeros(self.canvas_size, dtype=np.uint8)
 
         canvas_grid = list(itertools.product(range(self.grid_size[0]), range(self.grid_size[1])))
-        grid_w, grid_h = (self.canvas_size[0]) // self.grid_size[0], (self.canvas_size[1]) // self.grid_size[1]
+        grid_w, grid_h = (self.canvas_size[0]) // self.grid_size[0], (self.canvas_size[1]) // \
+                         self.grid_size[1]
 
         amt_drawings_per_group = group.shape[0]
         drawing_width = group.shape[1]
         drawing_height = group.shape[2]
-        grid_locations_indexes = np.random.choice(range(len(canvas_grid)), amt_drawings_per_group, replace=False)
+        grid_locations_indexes = np.random.choice(range(len(canvas_grid)), amt_drawings_per_group,
+                                                  replace=False)
 
-        annotation = np.zeros((amt_drawings_per_group, ), dtype=self.labels_type)
+        annotation = np.zeros((amt_drawings_per_group,), dtype=self.labels_type)
         for i, drawing in enumerate(group):
             image_size_x, image_size_y = drawing.shape
 
@@ -242,10 +254,11 @@ class ObjectDetectionDataSetHandler(object):
             random_corner_y = grid_locations[1] * grid_h + random_displacement
 
             canvas[random_corner_x: random_corner_x + image_size_x,
-                   random_corner_y: random_corner_y + image_size_y] += drawing
+            random_corner_y: random_corner_y + image_size_y] += drawing
 
-            annotation[i] = (image_size_x, image_size_y, labels[i], random_corner_y, random_corner_x,
-                             random_corner_y + image_size_y, random_corner_x + image_size_x)
+            annotation[i] = (
+            image_size_x, image_size_y, labels[i], random_corner_y, random_corner_x,
+            random_corner_y + image_size_y, random_corner_x + image_size_x)
 
         return canvas, annotation
 
@@ -292,8 +305,9 @@ class ObjectDetectionDataSetHandler(object):
         path = join(os.getcwd(), 'dataset', file_name + '.pbtxt')
         with open(path, 'w') as file:
             for index, class_name in enumerate(self.classes_name):
-                file.write('item {{\n\tid: {class_id}\n\tname: "{class_name}"\n}}\n'.format(class_id=index+1,
-                                                                                            class_name=class_name))
+                data = ('item {{\n\tid: {class_id}\n\tname: '
+                        '"{class_name}"\n}}\n').format(class_id=index + 1, class_name=class_name)
+                file.write(data)
 
     def create_tf_example(self, image, annotations, file_name):
         encoded_png = cv2.imencode('.png', image)
@@ -333,6 +347,18 @@ class ObjectDetectionDataSetHandler(object):
         }))
         return tf_example
 
+    def save_samples(self):
+        base_path = os.path.join(os.getcwd(), 'images')
+        if os.listdir(base_path):
+            return
+
+        for index, image in enumerate(self.train.data):
+            if index >= 100:
+                break
+            plt.imshow(image, cmap='gray_r')
+            plt.savefig(os.path.join(os.getcwd(), 'images', '{}.png'.format(index)))
+            plt.close(plt.gcf())
+
     @staticmethod
     def recover_images_from_tf_record_file():
         file_path = join(os.getcwd(), 'dataset', 'quick_draw_object_detection_dataset.record')
@@ -366,22 +392,9 @@ classification_data_set.val.data = classification_data_set.val.data[:40, :, :]
 classification_data_set.val.labels = classification_data_set.val.labels[:40, :]
 
 object_detection_data_set = ObjectDetectionDataSetHandler()
-object_detection_data_set.build_data_set(classification_data_set.train, classification_data_set.test,
-                                         classification_data_set.val, classification_data_set.classes_name)
+object_detection_data_set.build_data_set(classification_data_set.train,
+                                         classification_data_set.test,
+                                         classification_data_set.val,
+                                         classification_data_set.classes_name)
+object_detection_data_set.save_samples()
 object_detection_data_set.create_tf_records()
-
-
-# def train_classifier(data_set):
-#    classifier = Classifier(data_set)
-#    classifier.build_model()
-#    classifier.model.summary()
-#    classifier.train_model()
-
-#for index, image in enumerate(object_detection_data_set.train.data):
-#    if index >= 100:
-#        break
-#    plt.imshow(image, cmap='gray_r')
-#    plt.savefig(os.path.join(os.getcwd(), 'images', '{}.png'.format(index)))
-#    plt.close(plt.gcf())
-
-#
