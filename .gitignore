@@ -2,3 +2,8 @@
 pre-trained-models/*
 
 !pre-trained-models/ssd_inception_v2.config
+
+venv/
+
+*.zip
+*.tar.gz

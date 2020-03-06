@@ -2,13 +2,60 @@
 
 Quick draw data set: https://github.com/googlecreativelab/quickdraw-dataset
 
-## Object Detection API Installation
+## Object Detection TensorFlow API:
+
+https://github.com/tensorflow/models/tree/master/research/object_detection
+
+### Install
+
+### Local
+
+ * Install tensorflow with pip. WARNING: INSTALL Latest Tensorflow v1
+ * Clone models into tensorflow inside env directory: git clone https://github.com/tensorflow/models
+ * Checkout to latest v1 with `git checkout tags/v1.13.0 -b release/v1.13.0`
+ * Follow instructions from https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/installation.md
+
+### Aws
+
+To run on AWS deploy a EC2 instance with the Deep Learning AMI. Then use the right env: `source activate tensorflow_p36`
+
+### Train locally
+
+https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/running_locally.md
+
+## Deploy Steps
+
+ * Copy dataset and pre-trained-model
+``` 
+scp -r -i ~/Trabajo/Optiwe/platform.pem /home/dsesposito/Repositorios/personales/CNNObjectDetection/dataset/quick_draw_.zip  ubuntu@AWS_DNS:~/object_detection/CNNObjectDetection/dataset/
+```
+
+```
+scp -r -i ~/Trabajo/Optiwe/platform.pem /home/dsesposito/Repositorios/personales/CNNObjectDetection/resources/ssd_inception_v2_coco_2018_01_28.tar.gz  ubuntu@AWS_DNS:~/object_detection/CNNObjectDetection/pre-trained-models/
+```
+
+## Train on cloud
+
+ * Activate env: `source activate tensorflow_p36`
+ * Move to tensor flow dir: `cd ~/anaconda3/envs/tensorflow2_p36/lib/python3.6/site-packages/tensorflow/models/research/`
+ * Add slim directory to python path: `export PYTHONPATH=$PYTHONPATH:`pwd`:`pwd`/slim`
+ * Execute the train script:
+ 
+```
+PIPELINE_CONFIG_PATH=~/object_detection/CNNObjectDetection/pre-trained-models/pipeline.config
+MODEL_DIR=~/object_detection/CNNObjectDetection/training
+NUM_TRAIN_STEPS=50000
+SAMPLE_1_OF_N_EVAL_EXAMPLES=1
+python object_detection/model_main.py \
+    --pipeline_config_path=${PIPELINE_CONFIG_PATH} \
+    --model_dir=${MODEL_DIR} \
+    --num_train_steps=${NUM_TRAIN_STEPS} \
+    --sample_1_of_n_eval_examples=$SAMPLE_1_OF_N_EVAL_EXAMPLES \
+    --alsologtostderr
+```
+
+## Resources
 
 https://medium.com/@teyou21/setup-tensorflow-for-object-detection-on-ubuntu-16-04-e2485b52e32a
-
-## Links
-
 https://tensorflow-object-detection-api-tutorial.readthedocs.io/en/latest/
 https://medium.com/@WuStangDan/step-by-step-tensorflow-object-detection-api-tutorial-part-1-selecting-a-model-a02b6aabe39e
-
-
