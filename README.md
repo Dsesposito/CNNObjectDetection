@@ -14,6 +14,9 @@ https://github.com/tensorflow/models/tree/master/research/object_detection
  * Clone models into tensorflow inside env directory: git clone https://github.com/tensorflow/models
  * Checkout to latest v1 with `git checkout tags/v1.13.0 -b release/v1.13.0`
  * Follow instructions from https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/installation.md
+ * Test if installation is ok:
+    * `export PYTHONPATH=$PYTHONPATH:`pwd`:`pwd`/slim`
+    * `python object_detection/builders/model_builder_test.py`
 
 ### Aws
 
@@ -42,8 +45,8 @@ scp -r -i ~/Trabajo/Optiwe/platform.pem /home/dsesposito/Repositorios/personales
  * Execute the train script:
  
 ```
-PIPELINE_CONFIG_PATH=~/object_detection/CNNObjectDetection/pre-trained-models/pipeline.config
-MODEL_DIR=~/object_detection/CNNObjectDetection/training
+PIPELINE_CONFIG_PATH=/home/dsesposito/Repositorios/personales/CNNObjectDetection/models/ssd_inception_v2_coco/ssd_inception_v2_coco.config
+MODEL_DIR=/home/dsesposito/Repositorios/personales/CNNObjectDetection/models/model
 NUM_TRAIN_STEPS=50000
 SAMPLE_1_OF_N_EVAL_EXAMPLES=1
 python object_detection/model_main.py \

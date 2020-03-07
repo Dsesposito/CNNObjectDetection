@@ -1,7 +1,7 @@
 .idea/
-pre-trained-models/*
+models/*
 
-!pre-trained-models/ssd_inception_v2.config
+!models/ssd_inception_v2.config
 
 venv/
 
