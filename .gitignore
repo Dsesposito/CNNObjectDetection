@@ -1,7 +1,4 @@
 .idea/
-models/*
-
-!models/ssd_inception_v2.config
 
 venv/
 
