@@ -30,24 +30,26 @@ https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc
 
  * Copy dataset and pre-trained-model
 ``` 
-scp -r -i ~/Trabajo/Optiwe/platform.pem /home/dsesposito/Repositorios/personales/CNNObjectDetection/dataset/quick_draw_.zip  ubuntu@AWS_DNS:~/object_detection/CNNObjectDetection/dataset/
+scp -r -i ~/Trabajo/Optiwe/platform.pem /home/dsesposito/Repositorios/personales/CNNObjectDetection/dataset/quick_draw_.zip  ubuntu@AWS_DNS:~/object_detection/CNNObjectDetection/data/
 ```
 
 ```
-scp -r -i ~/Trabajo/Optiwe/platform.pem /home/dsesposito/Repositorios/personales/CNNObjectDetection/resources/ssd_inception_v2_coco_2018_01_28.tar.gz  ubuntu@AWS_DNS:~/object_detection/CNNObjectDetection/pre-trained-models/
+scp -r -i ~/Trabajo/Optiwe/platform.pem /home/dsesposito/Repositorios/personales/CNNObjectDetection/resources/ssd_inception_v2_coco_2018_01_28.tar.gz  ubuntu@AWS_DNS:~/object_detection/CNNObjectDetection/models/ssd_inception_v2_coco
 ```
+
+ * To unzip the .tar file: `tar -xvf ssd_inception_v2_coco_2018_01_28.tar.gz`
 
 ## Train on cloud
 
  * Activate env: `source activate tensorflow_p36`
- * Move to tensor flow dir: `cd ~/anaconda3/envs/tensorflow2_p36/lib/python3.6/site-packages/tensorflow/models/research/`
+ * Move to tensor flow dir: `cd ~/anaconda3/envs/tensorflow_p36/lib/python3.6/site-packages/tensorflow/models/research/`
  * Add slim directory to python path: `export PYTHONPATH=$PYTHONPATH:`pwd`:`pwd`/slim`
  * Execute the train script:
-    * On AWS
+    * On AWS from `~/anaconda3/envs/tensorflow_p36/lib/python3.6/site-packages/tensorflow/models/research/`
 
 ```
-PIPELINE_CONFIG_PATH=/home/root/object_detection/CNNObjectDetection/models/ssd_inception_v2_coco/ssd_inception_v2_coco.config
-MODEL_DIR=/home/root/object_detection/CNNObjectDetection/models/model
+PIPELINE_CONFIG_PATH=/home/ubuntu/object_detection/CNNObjectDetection/models/ssd_inception_v2_coco/ssd_inception_v2_coco.config
+MODEL_DIR=/home/ubuntu/object_detection/CNNObjectDetection/models/model
 NUM_TRAIN_STEPS=50000
 SAMPLE_1_OF_N_EVAL_EXAMPLES=1
 python object_detection/model_main.py \
