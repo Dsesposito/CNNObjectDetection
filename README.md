@@ -43,9 +43,25 @@ scp -r -i ~/Trabajo/Optiwe/platform.pem /home/dsesposito/Repositorios/personales
  * Move to tensor flow dir: `cd ~/anaconda3/envs/tensorflow2_p36/lib/python3.6/site-packages/tensorflow/models/research/`
  * Add slim directory to python path: `export PYTHONPATH=$PYTHONPATH:`pwd`:`pwd`/slim`
  * Execute the train script:
+    * On AWS
+
+```
+PIPELINE_CONFIG_PATH=/home/root/object_detection/CNNObjectDetection/models/ssd_inception_v2_coco/ssd_inception_v2_coco.config
+MODEL_DIR=/home/root/object_detection/CNNObjectDetection/models/model
+NUM_TRAIN_STEPS=50000
+SAMPLE_1_OF_N_EVAL_EXAMPLES=1
+python object_detection/model_main.py \
+    --pipeline_config_path=${PIPELINE_CONFIG_PATH} \
+    --model_dir=${MODEL_DIR} \
+    --num_train_steps=${NUM_TRAIN_STEPS} \
+    --sample_1_of_n_eval_examples=$SAMPLE_1_OF_N_EVAL_EXAMPLES \
+    --alsologtostderr
+```
+
+    * Local
  
 ```
-PIPELINE_CONFIG_PATH=/home/dsesposito/Repositorios/personales/CNNObjectDetection/models/ssd_inception_v2_coco/ssd_inception_v2_coco.config
+PIPELINE_CONFIG_PATH=/home/dsesposito/Repositorios/personales/CNNObjectDetection/models/ssd_inception_v2_coco/ssd_inception_v2_coco_local.config
 MODEL_DIR=/home/dsesposito/Repositorios/personales/CNNObjectDetection/models/model
 NUM_TRAIN_STEPS=50000
 SAMPLE_1_OF_N_EVAL_EXAMPLES=1
