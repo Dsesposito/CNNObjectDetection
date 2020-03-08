@@ -45,7 +45,7 @@ scp -r -i ~/Trabajo/Optiwe/platform.pem /home/dsesposito/Repositorios/personales
  * Move to tensor flow dir: `cd ~/anaconda3/envs/tensorflow_p36/lib/python3.6/site-packages/tensorflow/models/research/`
  * Add slim directory to python path: `export PYTHONPATH=$PYTHONPATH:`pwd`:`pwd`/slim`
  * Execute the train script:
-    * On AWS from `~/anaconda3/envs/tensorflow_p36/lib/python3.6/site-packages/tensorflow/models/research/`
+    * On AWS
 
 ```
 PIPELINE_CONFIG_PATH=/home/ubuntu/object_detection/CNNObjectDetection/models/ssd_inception_v2_coco/ssd_inception_v2_coco.config
