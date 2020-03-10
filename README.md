@@ -81,6 +81,8 @@ python object_detection/model_main.py \
     --alsologtostderr
 ```
 
+  * Run tensorboard: `tensorboard --logdir=${MODEL_DIR}`
+
 ## Resources
 
 https://medium.com/@teyou21/setup-tensorflow-for-object-detection-on-ubuntu-16-04-e2485b52e32a
