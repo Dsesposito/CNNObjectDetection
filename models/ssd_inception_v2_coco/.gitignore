@@ -3,3 +3,4 @@
 # Except this file
 !.gitignore
 !ssd_inception_v2_coco.config
+!ssd_inception_v2_coco_local.config
