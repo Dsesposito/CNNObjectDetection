@@ -1,6 +1,4 @@
 import itertools
-from functools import reduce
-
 import h5py
 import os
 from os import listdir
@@ -20,22 +18,23 @@ class DataLabel(object):
 
 
 class DataSetHandler(object):
-    def __init__(self):
+    def __init__(self, force_update=False):
         self.train = DataLabel()
         self.test = DataLabel()
         self.val = DataLabel()
         self.amt_classes = None
         self.classes_name = None
         self.loaded = False
+        self.force_update = force_update
 
-        path = join(os.getcwd(), 'dataset')
+        path = join(os.getcwd(), 'data')
         file_path = join(path, 'quick_draw_dataset.hdf5')
-        if os.path.exists(file_path):
+        if os.path.exists(file_path) and not self.force_update:
             self.load_data_set()
             self.loaded = True
 
     def load_data_set(self):
-        path = join(os.getcwd(), 'dataset', 'quick_draw_dataset.hdf5')
+        path = join(os.getcwd(), 'data', 'quick_draw_dataset.hdf5')
         f = h5py.File(path, 'r')
         self.train.data = np.array(f['train/data'])
         self.train.labels = np.array(f['train/labels'])
@@ -47,7 +46,14 @@ class DataSetHandler(object):
         self.classes_name = f['meta'].attrs['classes_name']
 
     def save_dataset_as_images(self):
-        path = join(os.getcwd(), 'dataset')
+        path = join(os.getcwd(), 'data')
+        train_path = join(path, 'train')
+        test_path = join(path, 'test')
+        validation_path = join(path, 'validation')
+        if (os.path.exists(train_path) and os.path.exists(test_path) and
+                os.path.exists(validation_path) and not self.force_update):
+            return
+
         if not os.path.exists(join(path, 'train')):
             os.mkdir(join(path, 'train'))
         if not os.path.exists(join(path, 'test')):
@@ -80,9 +86,10 @@ class DataSetHandler(object):
         if self.loaded:
             return
 
-        path = join(os.getcwd(), 'dataset')
+        path = join(os.getcwd(), 'data')
         files = [file for file in listdir(path) if
-                 isfile(join(path, file)) and file != 'quick_draw_dataset.hdf5']
+                 isfile(join(path, file)) and file != 'quick_draw_data.hdf5'
+                 and file != '.gitignore']
         amt_classes = len(files)
         amt_train_images = 10000
         amt_test_images = 1000
@@ -102,23 +109,24 @@ class DataSetHandler(object):
             file_name = os.path.splitext(file)[0]
             class_name = file_name.split('_')[-1]
             classes_name.append(class_name)
-            class_images = np.load(join(path, file))
+            class_images = np.load(join(path, file), allow_pickle=True)
             class_images = class_images.astype(np.float32) / 255
             np.random.shuffle(class_images)
             class_images = class_images.reshape(
                 (len(class_images), image_with_height, image_with_height, 1))
-            train_images[index * amt_train_images:(index + 1) * amt_train_images] = class_images[
-                                                                                    0:amt_train_images,
-                                                                                    :, :, :]
-            train_labels[index * amt_train_images:(index + 1) * amt_train_images] = index
+            start, end = index * amt_train_images, (index + 1) * amt_train_images
+            train_images[start:end] = class_images[0:amt_train_images, :, :, :]
+            train_labels[start:end] = index
 
-            test_images[index * amt_test_images:(index + 1) * amt_test_images] = \
-                class_images[amt_train_images:(amt_train_images + amt_test_images), :, :, :]
+            start, end = index * amt_test_images, (index + 1) * amt_test_images
+            start_images, end_images = amt_train_images, (amt_train_images + amt_test_images)
+            test_images[start:end] = class_images[start_images:end_images, :, :, :]
             test_labels[index * amt_test_images:(index + 1) * amt_test_images] = index
 
-            val_images[index * amt_val_images:(index + 1) * amt_val_images] = \
-                class_images[(amt_train_images + amt_test_images):
-                             (amt_train_images + amt_test_images + amt_val_images), :, :, :]
+            start, end = index * amt_val_images, (index + 1) * amt_val_images
+            start_images = (amt_train_images + amt_test_images)
+            end_images = (amt_train_images + amt_test_images + amt_val_images)
+            val_images[start:end] = class_images[start_images:end_images, :, :, :]
             val_labels[index * amt_val_images:(index + 1) * amt_val_images] = index
 
         rand_indexes = np.random.permutation(len(train_images))
@@ -148,7 +156,7 @@ class DataSetHandler(object):
         self.save_data_set()
 
     def save_data_set(self):
-        path = join(os.getcwd(), 'dataset')
+        path = join(os.getcwd(), 'data')
         file_path = join(path, 'quick_draw_dataset.hdf5')
 
         f = h5py.File(file_path, 'w')
@@ -164,7 +172,7 @@ class DataSetHandler(object):
 
 
 class ObjectDetectionDataSetHandler(object):
-    def __init__(self):
+    def __init__(self, force_update=False):
         self.train = DataLabel()
         self.test = DataLabel()
         self.validation = DataLabel()
@@ -172,20 +180,21 @@ class ObjectDetectionDataSetHandler(object):
         self.grid_size = (2, 2)
         self.classes_name = []
         self.loaded = False
+        self.force_update = force_update
 
         names = ['size_x', 'size_y', 'class_name_index', 'corner_y', 'corner_x', 'corner_y2',
                  'corner_x2']
         formats = [np.uint8, np.uint8, np.uint8, np.uint8, np.uint8, np.uint8, np.uint8]
         self.labels_type = dict(names=names, formats=formats)
 
-        path = join(os.getcwd(), 'dataset')
+        path = join(os.getcwd(), 'data')
         file_path = join(path, 'quick_draw_object_detection_dataset.hdf5')
         if os.path.exists(file_path):
             self.load_data_set()
             self.loaded = True
 
     def build_data_set(self, train, test, validation, classes_names):
-        if self.loaded:
+        if self.loaded and not self.force_update:
             return
 
         self._build_object_detection_data_set(train, self.train)
@@ -234,8 +243,8 @@ class ObjectDetectionDataSetHandler(object):
         canvas = np.zeros(self.canvas_size, dtype=np.uint8)
 
         canvas_grid = list(itertools.product(range(self.grid_size[0]), range(self.grid_size[1])))
-        grid_w, grid_h = (self.canvas_size[0]) // self.grid_size[0], (self.canvas_size[1]) // \
-                         self.grid_size[1]
+        grid_w, grid_h = ((self.canvas_size[0]) // self.grid_size[0],
+                          (self.canvas_size[1]) // self.grid_size[1])
 
         amt_drawings_per_group = group.shape[0]
         drawing_width = group.shape[1]
@@ -253,17 +262,16 @@ class ObjectDetectionDataSetHandler(object):
             random_displacement = np.random.randint(0, (grid_h - drawing_height))
             random_corner_y = grid_locations[1] * grid_h + random_displacement
 
-            canvas[random_corner_x: random_corner_x + image_size_x,
-            random_corner_y: random_corner_y + image_size_y] += drawing
+            pt1_y, pt1_x = random_corner_y, random_corner_x
+            pt2_y, pt2_x = random_corner_y + image_size_y, random_corner_x + image_size_x
+            canvas[pt1_y: pt2_y, pt1_x: pt2_x] += drawing
 
-            annotation[i] = (
-            image_size_x, image_size_y, labels[i], random_corner_y, random_corner_x,
-            random_corner_y + image_size_y, random_corner_x + image_size_x)
+            annotation[i] = (image_size_x, image_size_y, labels[i], pt1_y, pt1_x,pt2_y, pt2_x)
 
         return canvas, annotation
 
     def save_dataset(self):
-        path = join(os.getcwd(), 'dataset')
+        path = join(os.getcwd(), 'data')
         file_path = join(path, 'quick_draw_object_detection_dataset.hdf5')
         f = h5py.File(file_path, 'w')
         f.create_dataset('train/data', data=self.train.data)
@@ -276,7 +284,7 @@ class ObjectDetectionDataSetHandler(object):
         meta_dataset.attrs['classes_name'] = self.classes_name
 
     def load_data_set(self):
-        path = join(os.getcwd(), 'dataset', 'quick_draw_object_detection_dataset.hdf5')
+        path = join(os.getcwd(), 'data', 'quick_draw_object_detection_dataset.hdf5')
         f = h5py.File(path, 'r')
         self.train.data = np.array(f['train/data'])
         self.train.labels = np.array(f['train/labels'])
@@ -292,17 +300,17 @@ class ObjectDetectionDataSetHandler(object):
         self.create_tf_record(self.validation, 'quick_draw_object_detection_val_dataset')
 
     def create_tf_record(self, dataset, file_name):
-        path = join(os.getcwd(), 'dataset', file_name + '.record')
-        if os.path.exists(path):
+        path = join(os.getcwd(), 'data', file_name + '.record')
+        if os.path.exists(path) and not self.force_update:
             return
 
-        writer = tf.python_io.TFRecordWriter(path)
+        writer = tf.io.TFRecordWriter(path)
         for index, (image, annotation) in enumerate(zip(dataset.data, dataset.labels)):
             tf_example = self.create_tf_example(image, annotation, index)
             writer.write(tf_example.SerializeToString())
         writer.close()
 
-        path = join(os.getcwd(), 'dataset', file_name + '.pbtxt')
+        path = join(os.getcwd(), 'data', file_name + '.pbtxt')
         with open(path, 'w') as file:
             for index, class_name in enumerate(self.classes_name):
                 data = ('item {{\n\tid: {class_id}\n\tname: '
@@ -348,53 +356,36 @@ class ObjectDetectionDataSetHandler(object):
         return tf_example
 
     def save_samples(self):
-        base_path = os.path.join(os.getcwd(), 'images')
-        if os.listdir(base_path):
+        base_path = os.path.join(os.getcwd(), 'data', 'images')
+        maximum = 10
+        if len(os.listdir(base_path)) >= maximum and not self.force_update:
             return
 
         for index, image in enumerate(self.train.data):
-            if index >= 100:
+            image_copy = np.copy(image)
+            if index >= maximum:
                 break
-            plt.imshow(image, cmap='gray_r')
+
+            annotations = self.train.labels[index]
+            for annotation in annotations:
+                _, _, label_index, pt1_y, pt1_x, pt2_y, pt2_x = annotation
+                pt1 = pt1_x, pt1_y
+                pt2 = pt2_x, pt2_y
+                cv2.rectangle(image_copy, pt1, pt2, (255, 255, 255), thickness=1)
+                cv2.putText(image_copy, str(self.classes_name[label_index]), (pt1_x, pt1_y - 3),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.2, (255, 255, 255))
+
+            plt.imshow(image_copy, cmap='gray_r')
             plt.savefig(os.path.join(os.getcwd(), 'images', '{}.png'.format(index)))
             plt.close(plt.gcf())
 
-    @staticmethod
-    def recover_images_from_tf_record_file():
-        file_path = join(os.getcwd(), 'dataset', 'quick_draw_object_detection_dataset.record')
-        dataset = tf.data.TFRecordDataset([file_path])
-        record_iterator = dataset.make_one_shot_iterator().get_next()
 
-        with tf.Session() as sess:
-            # Read and parse record
-            feature = {'image/encoded': tf.FixedLenFeature([], tf.string)}
-            sample = tf.parse_single_example(record_iterator, feature)
+data_set = DataSetHandler(force_update=True)
+data_set.build_data_set()
+data_set.save_dataset_as_images()
 
-            # Decode image and get numpy array
-            encoded_image = sample['image/encoded']
-            decoded_image = tf.image.decode_png(encoded_image)
-            image_np = sess.run(decoded_image)
-
-            # Display image
-            plt.imshow(np.squeeze(image_np))
-            plt.show()
-
-
-classification_data_set = DataSetHandler()
-classification_data_set.build_data_set()
-classification_data_set.train.data = classification_data_set.train.data[:4000, :, :]
-classification_data_set.train.labels = classification_data_set.train.labels[:4000, :]
-
-classification_data_set.test.data = classification_data_set.test.data[:400, :, :]
-classification_data_set.test.labels = classification_data_set.test.labels[:400, :]
-
-classification_data_set.val.data = classification_data_set.val.data[:40, :, :]
-classification_data_set.val.labels = classification_data_set.val.labels[:40, :]
-
-object_detection_data_set = ObjectDetectionDataSetHandler()
-object_detection_data_set.build_data_set(classification_data_set.train,
-                                         classification_data_set.test,
-                                         classification_data_set.val,
-                                         classification_data_set.classes_name)
+object_detection_data_set = ObjectDetectionDataSetHandler(force_update=True)
+object_detection_data_set.build_data_set(
+    data_set.train, data_set.test, data_set.val, data_set.classes_name)
 object_detection_data_set.save_samples()
 object_detection_data_set.create_tf_records()
