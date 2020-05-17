@@ -5,7 +5,7 @@ Quick draw data set: https://github.com/googlecreativelab/quickdraw-dataset
 ## Generate record files
 
  * Run `main.py`
- * Check tf records with: `python tfviewer.py ~/Repositorios/personales/CNNObjectDetection/data/quick_draw_object_detection_train_dataset.record --labels-to-highlight='moon;face;umbrella;house;sun;hat;tree;smiley face;cloud;star;rain;barn'`
+ * Check tf records with: `python tfviewer.py ~/Repositorios/personales/CNNObjectDetection/data/tf_records/quick_draw_object_detection_train_dataset.record --labels-to-highlight='hand;sun;star;t-shirt;house;barn;pants;umbrella;smiley face;shorts;face;moon;leg;foot;cloud;shoe;tree;rain'`
 
 ## Object Detection TensorFlow API:
 
@@ -21,6 +21,7 @@ https://github.com/tensorflow/models/tree/master/research/object_detection
  * Follow instructions from https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/installation.md
  * Test if installation is ok:
     * `export PYTHONPATH=$PYTHONPATH:`pwd`:`pwd`/slim`
+    * Move to tensor flow dir: `cd /home/dsesposito/Repositorios/personales/CNNObjectDetection/venv/lib/python3.7/site-packages/tensorflow/models/research/`
     * `python object_detection/builders/model_builder_test.py`
 
 ### AWS
@@ -82,6 +83,55 @@ python object_detection/model_main.py \
 ```
 
   * Run tensorboard: `tensorboard --logdir=${MODEL_DIR}`
+
+## Inference
+
+### Export model on aws
+
+ * Activate venv `source activate tensorflow_p36`
+ * Move to tensor flow dir: `cd ~/anaconda3/envs/tensorflow_p36/lib/python3.6/site-packages/tensorflow/models/research/`
+ * Add slim directory to python path: `export PYTHONPATH=$PYTHONPATH:`pwd`:`pwd`/slim`
+ * Export checkpoint (use image_tensor or tf_example as INPUT_TYPE):
+
+```
+export INPUT_TYPE=image_tensor PIPELINE_CONFIG_PATH=/home/ubuntu/object_detection/CNNObjectDetection/models/ssd_inception_v2_coco/ssd_inception_v2_coco.config TRAINED_CKPT_PREFIX=/home/ubuntu/object_detection/CNNObjectDetection/models/model/model.ckpt-15118 EXPORT_DIR=/home/ubuntu/object_detection/CNNObjectDetection/models/checkpoint_model
+```
+
+```
+python object_detection/export_inference_graph.py \
+    --input_type=${INPUT_TYPE} \
+    --pipeline_config_path=${PIPELINE_CONFIG_PATH} \
+    --trained_checkpoint_prefix=${TRAINED_CKPT_PREFIX} \
+    --output_directory=${EXPORT_DIR}
+```
+
+```
+zip -r checkpoint_model.zip checkpoint_model/
+```
+
+### Inference on test dataset locally
+ * Activate env: `source activate ./venv/bin/activate`
+ * Move to tensor flow dir: `cd /home/dsesposito/Repositorios/personales/CNNObjectDetection/venv/lib/python3.7/site-packages/tensorflow/models/research/`
+ * Add slim directory to python path: `export PYTHONPATH=$PYTHONPATH:`pwd`:`pwd`/slim`
+ * Execute the train script:
+
+```
+export TF_RECORD_OUTPUT_FILE=/home/dsesposito/Repositorios/personales/CNNObjectDetection/data/inference_on_test_ds.tfrecord TF_RECORD_INPUT_FILES=/home/dsesposito/Repositorios/personales/CNNObjectDetection/data/quick_draw_object_detection_test_dataset.record INFERENCE_GRAPH_PATH=/home/dsesposito/Repositorios/personales/CNNObjectDetection/models/checkpoint_model_input_type_tf_example/frozen_inference_graph.pb
+```
+```
+python -m object_detection.inference.infer_detections \
+  --input_tfrecord_paths=$TF_RECORD_INPUT_FILES \
+  --output_tfrecord_path=$TF_RECORD_OUTPUT_FILE \
+  --inference_graph=$INFERENCE_GRAPH_PATH
+```
+
+
+
+### Download model
+
+```
+scp -i ~/Trabajo/Optiwe/platform.pem ubuntu@AWS_IP:/home/ubuntu/object_detection/CNNObjectDetection/models/checkpoint_model.zip ~/Downloads
+```
 
 ## Resources
 

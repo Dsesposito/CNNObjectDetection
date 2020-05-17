@@ -4,3 +4,5 @@ venv/
 
 *.zip
 *.tar.gz
+
+__pycache__/
