@@ -55,7 +55,7 @@ python object_detection/model_main.py \
 
  * Copy dataset and pre-trained-model
 ``` 
-scp -r -i ~/Trabajo/Optiwe/platform.pem /home/dsesposito/Repositorios/personales/CNNObjectDetection/resources/quick_draw_.zip  ubuntu@AWS_DNS:~/object_detection/CNNObjectDetection/data/
+scp -r -i ~/Trabajo/Optiwe/platform.pem /home/dsesposito/Repositorios/personales/CNNObjectDetection/resources/tf_records.zip  ubuntu@54.153.2.153:~/object_detection/CNNObjectDetection/data/
 ```
  * unzip with `unzip quick_draw_.zip`
 

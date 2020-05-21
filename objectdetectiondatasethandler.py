@@ -82,7 +82,7 @@ class ObjectDetectionDataSetHandler(object):
         amt_combined_images = images_per_class * amt_classes // images_amt_per_canvas
         grouped_random_indexes = random_indexes.reshape(
             (amt_combined_images, images_amt_per_canvas, 2))
-        train_amt_images = int(np.floor(0.7 * amt_combined_images))
+        train_amt_images = int(np.floor(0.9 * amt_combined_images))
 
         combined_images_path = np.zeros(
             (amt_combined_images, images_amt_per_canvas), dtype=np.dtype('U512'))
