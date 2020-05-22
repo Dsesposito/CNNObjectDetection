@@ -94,7 +94,7 @@ python object_detection/model_main.py \
  * Export checkpoint (use image_tensor or tf_example as INPUT_TYPE):
 
 ```
-export INPUT_TYPE=image_tensor PIPELINE_CONFIG_PATH=/home/ubuntu/object_detection/CNNObjectDetection/models/ssd_inception_v2_coco/ssd_inception_v2_coco.config TRAINED_CKPT_PREFIX=/home/ubuntu/object_detection/CNNObjectDetection/models/model/model.ckpt-15118 EXPORT_DIR=/home/ubuntu/object_detection/CNNObjectDetection/models/checkpoint_model
+export INPUT_TYPE=image_tensor PIPELINE_CONFIG_PATH=/home/ubuntu/object_detection/CNNObjectDetection/models/ssd_inception_v2_coco/ssd_inception_v2_coco.config TRAINED_CKPT_PREFIX=/home/ubuntu/object_detection/CNNObjectDetection/models/model/model.ckpt-17500 EXPORT_DIR=/home/ubuntu/object_detection/CNNObjectDetection/models/checkpoint_model
 ```
 
 ```
@@ -107,6 +107,12 @@ python object_detection/export_inference_graph.py \
 
 ```
 zip -r checkpoint_model.zip checkpoint_model/
+```
+
+### Download model
+
+```
+scp -i ~/Trabajo/Optiwe/platform.pem ubuntu@AWS_IP:/home/ubuntu/object_detection/CNNObjectDetection/models/checkpoint_model.zip ~/Downloads
 ```
 
 ### Inference on test dataset locally
@@ -126,15 +132,39 @@ python -m object_detection.inference.infer_detections \
 ```
 
 
-
-### Download model
-
-```
-scp -i ~/Trabajo/Optiwe/platform.pem ubuntu@AWS_IP:/home/ubuntu/object_detection/CNNObjectDetection/models/checkpoint_model.zip ~/Downloads
-```
-
 ## Resources
 
 https://medium.com/@teyou21/setup-tensorflow-for-object-detection-on-ubuntu-16-04-e2485b52e32a
 https://tensorflow-object-detection-api-tutorial.readthedocs.io/en/latest/
 https://medium.com/@WuStangDan/step-by-step-tensorflow-object-detection-api-tutorial-part-1-selecting-a-model-a02b6aabe39e
+
+
+### Bug fixing
+
+If evaluation took more than 10 min. Read: https://stackoverflow.com/questions/52800897/tensorflow-runs-running-per-image-evaluation-indefinitly
+
+```
+I figured out a solution for the problem. The problem with tensorflow 1.10 and after is, that you can not set checkpoint steps or checkpoint secs in the config file like before. By default tensorflow 1.10 and after saves a checkpoint every 10 min. If your hardware is not fast enough and you need more then 10 min for evaluation, you are stuck in a loop.
+
+So to change the time steps or training steps till a new checkpoint is safed (which triggers the evaluation), you have to navigate to the model_main.py in the following folder:
+
+tensorflow/models/research/object_detection/
+
+Once you opened model_main.py, navigate to line 62. Here you will find
+
+config = tf.estimator.RunConfig(model_dir=FLAGS.model_dir)
+
+To trigger the checkpoint save after 2500 steps for example, change the entry to this:
+
+config = tf.estimator.RunConfig(model_dir=FLAGS.model_dir,save_checkpoints_steps=2500).
+
+Now the model is saved every 2500 steps and afterwards an evaluation is done.
+
+There are multiple parameters you can pass through this option. You can find a documentation here:
+
+tensorflow/tensorflow/contrib/learn/python/learn/estimators/run_config.py.
+
+From Line 231 to 294 you can see the parameters and documentation.
+
+I hope I can help you with this and you don't have to look for an answer as long as I did.
+```
