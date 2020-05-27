@@ -57,7 +57,7 @@ python object_detection/model_main.py \
 ``` 
 scp -r -i ~/Trabajo/Optiwe/platform.pem /home/dsesposito/Repositorios/personales/CNNObjectDetection/resources/tf_records.zip  ubuntu@54.153.2.153:~/object_detection/CNNObjectDetection/data/
 ```
- * unzip with `unzip quick_draw_.zip`
+ * unzip with `unzip tf_records.zip `
 
 ```
 scp -r -i ~/Trabajo/Optiwe/platform.pem /home/dsesposito/Repositorios/personales/CNNObjectDetection/resources/ssd_inception_v2_coco_2018_01_28.tar.gz  ubuntu@AWS_DNS:~/object_detection/CNNObjectDetection/models/ssd_inception_v2_coco
@@ -66,6 +66,7 @@ scp -r -i ~/Trabajo/Optiwe/platform.pem /home/dsesposito/Repositorios/personales
  * To unzip the .tar file: `tar -xvf ssd_inception_v2_coco_2018_01_28.tar.gz`
 
  * Activate env: `source activate tensorflow_p36`
+ * Delete previous model with `rm ~/object_detection/CNNObjectDetection/models/model/* -r`
  * Move to tensor flow dir: `cd ~/anaconda3/envs/tensorflow_p36/lib/python3.6/site-packages/tensorflow/models/research/`
  * Add slim directory to python path: `export PYTHONPATH=$PYTHONPATH:`pwd`:`pwd`/slim`
  * Execute the train script:
@@ -89,6 +90,7 @@ python object_detection/model_main.py \
 ### Export model on aws
 
  * Activate venv `source activate tensorflow_p36`
+ * Delete previous checkpoint model with `rm ~/object_detection/CNNObjectDetection/models/checkpoint_model/ -r`
  * Move to tensor flow dir: `cd ~/anaconda3/envs/tensorflow_p36/lib/python3.6/site-packages/tensorflow/models/research/`
  * Add slim directory to python path: `export PYTHONPATH=$PYTHONPATH:`pwd`:`pwd`/slim`
  * Export checkpoint (use image_tensor or tf_example as INPUT_TYPE):

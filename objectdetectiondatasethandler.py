@@ -59,8 +59,12 @@ class ObjectDetectionDataSetHandler(object):
             class_name: index for index, class_name in enumerate(self.classes_name)
         }
         amt_classes = len(classes_path)
-        images_amt_per_canvas = 4
+        min_images_amt_per_canvas = 4
+        max_images_amt_per_canvas = 9
         images_per_class = 12000
+        total_amt_images = images_per_class * amt_classes
+        amt_augmentation = 5
+        total_with_augmented = total_amt_images * amt_augmentation
 
         images_files_path = np.zeros((images_per_class, amt_classes), dtype=np.dtype('U512'))
         for i, class_path in enumerate(classes_path):
@@ -68,41 +72,48 @@ class ObjectDetectionDataSetHandler(object):
                 os.path.join(class_path, file_name) for file_name in os.listdir(class_path)
             ][:images_per_class]
 
-        random_indexes = np.zeros(
-            (images_per_class*amt_classes, 2), dtype=np.uint64)
-        for i in range(amt_classes):
-            random_indexes[
-                i*images_per_class:(i+1)*images_per_class, :
-            ] = list(
-                zip(range(images_per_class), i*np.ones((images_per_class, ), dtype=np.uint64))
-            )
+        random_indexes = np.zeros((total_with_augmented, 2), dtype=np.uint64)
+        for j in range(amt_augmentation):
+            for i in range(amt_classes):
+                start_index = (i*images_per_class)+(j*total_amt_images)
+                end_index = ((i+1)*images_per_class)+(j*total_amt_images)
+                random_indexes[start_index: end_index, :
+                ] = list(zip(
+                        range(images_per_class),
+                        i*np.ones((images_per_class, ), dtype=np.uint64)
+                    ))
 
         np.random.shuffle(random_indexes)
 
-        amt_combined_images = images_per_class * amt_classes // images_amt_per_canvas
-        grouped_random_indexes = random_indexes.reshape(
-            (amt_combined_images, images_amt_per_canvas, 2))
-        train_amt_images = int(np.floor(0.9 * amt_combined_images))
+        combined_images_path = []
+        amt_took_images = 0
+        while amt_took_images < total_with_augmented:
+            group_amt = np.random.randint(min_images_amt_per_canvas, max_images_amt_per_canvas)
+            group = random_indexes[
+                amt_took_images:amt_took_images+group_amt, :
+            ]
 
-        combined_images_path = np.zeros(
-            (amt_combined_images, images_amt_per_canvas), dtype=np.dtype('U512'))
-        for i in range(amt_combined_images):
-            for j in range(images_amt_per_canvas):
-                image_index, class_index = grouped_random_indexes[i, j, :]
-                combined_images_path[i, j] = images_files_path[image_index, class_index]
+            group_paths = []
+            for image_index, class_index in group:
+                group_paths.append(
+                    images_files_path[image_index, class_index]
+                )
 
-        source_images_size = 100
-        channels_amt = 4  # RGBA
+            combined_images_path.append(group_paths)
+            amt_took_images += group_amt
+
         train_annotations = []
         test_annotations = []
+        total_combined_images = len(combined_images_path)
+        train_amt_images = int(np.floor(0.9 * total_combined_images))
         for index, combined_image_path in enumerate(combined_images_path):
-            images_group = np.zeros(
-                (images_amt_per_canvas, source_images_size, source_images_size, channels_amt),
-                dtype=np.float32
-            )
-            labels_indexes = [None] * images_amt_per_canvas
+
+            images_group = []
+            labels_indexes = [None] * len(combined_image_path)
             for i, image_path in enumerate(combined_image_path):
-                images_group[i, :, :, :] = plt.imread(image_path)
+                image = plt.imread(image_path)
+                augmented_image = self.augment_image(image)
+                images_group.append(augmented_image)
                 decomposed_path = image_path.split(os.sep)
                 labels_indexes[i] = inverted_classes[decomposed_path[-2]]
 
@@ -119,7 +130,7 @@ class ObjectDetectionDataSetHandler(object):
 
             plt.imsave(path, canvas, format="jpg", vmin=0, vmax=1)
 
-            print('Image {} of {} was generated'.format(index, amt_combined_images))
+            print('Image {} of {} was generated'.format(index, total_combined_images))
 
         with open(os.path.join(
                 self.combined_drawings_path, 'train', 'annotations.csv'), 'w', newline='') as file:
@@ -136,38 +147,58 @@ class ObjectDetectionDataSetHandler(object):
                 writer.writerow([json.dumps(annotation), file_name])
 
     def _combine_drawings_group(self, group, labels):
-        canvas = np.zeros(self.canvas_size, dtype=np.float32)
+        canvas = np.ones(self.canvas_size, dtype=np.float32)
+        canvas[:, :, 3] = np.zeros(self.canvas_size[0:2])
 
-        canvas_grid = list(itertools.product(range(self.grid_size[0]), range(self.grid_size[1])))
-        grid_w, grid_h = ((self.canvas_size[0]) // self.grid_size[0],
-                          (self.canvas_size[1]) // self.grid_size[1])
+        canvas_width = self.canvas_size[0]
+        canvas_height = self.canvas_size[1]
 
-        amt_drawings_per_group = group.shape[0]
-        drawing_width = group.shape[1]
-        drawing_height = group.shape[2]
-        grid_locations_indexes = np.random.choice(range(len(canvas_grid)), amt_drawings_per_group,
-                                                  replace=False)
-
-        annotation = [] # np.zeros((amt_drawings_per_group,), dtype=self.labels_type)
+        annotation = []
         for i, drawing in enumerate(group):
             image_size_x, image_size_y, _ = drawing.shape
 
-            grid_locations = canvas_grid[grid_locations_indexes[i]]
-            random_displacement = np.random.randint(0, (grid_w - drawing_width))
-            random_corner_x = grid_locations[0] * grid_w + random_displacement
-            random_displacement = np.random.randint(0, (grid_h - drawing_height))
-            random_corner_y = grid_locations[1] * grid_h + random_displacement
+            random_corner_x = np.random.randint(canvas_width - image_size_x)
+            random_corner_y = np.random.randint(canvas_height - image_size_y)
 
             pt1_y, pt1_x = random_corner_y, random_corner_x
             pt2_y, pt2_x = random_corner_y + image_size_y, random_corner_x + image_size_x
-            canvas[pt1_y: pt2_y, pt1_x: pt2_x, :] += drawing
+            canvas[pt1_y: pt2_y, pt1_x: pt2_x, 3] += drawing[:, :, 3]
 
             annotation.append(dict(zip(self.column_names, (
                 image_size_x, image_size_y, labels[i], self.classes_name[labels[i]], pt1_y, pt1_x,
                 pt2_y, pt2_x
             ))))
 
+        canvas[canvas > 1] = 1
+        selection = canvas[:, :, 3] > 0
+        selection = selection[:, :, np.newaxis]
+        selection = np.repeat(selection, 4, 2)
+        selection[:, :, 3] = False
+        canvas[selection] = 0
         return canvas, annotation
+
+    def augment_image(self, image):
+        random_scale = np.random.uniform(low=0.35, high=0.65)
+        height, width = image.shape[:2]
+
+        re_height = int(height * random_scale)
+        re_width = int(width * random_scale)
+
+        dim = (re_width, re_height)
+        augmented_image = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
+        # augmented_image[augmented_image < 0] = 0
+        # augmented_image[augmented_image > 1] = 1
+
+        canvas = np.ones(image.shape, dtype=np.float32)
+        canvas[:, :, 3] = np.zeros(image.shape[0:2])
+
+        start_row = width // 2 - re_width // 2
+        end_row = start_row + re_width
+        start_column = height // 2 - re_height // 2
+        end_column = start_column + re_height
+        canvas[start_row:end_row, start_column:end_column, :] = augmented_image
+
+        return canvas
 
     def create_tf_records(self):
         source_path = os.path.join(self.combined_drawings_path, 'train')
@@ -240,83 +271,3 @@ class ObjectDetectionDataSetHandler(object):
             'image/object/class/label': dataset_util.int64_list_feature(classes),
         }))
         return tf_example
-
-    # def save_samples(self):
-    #     base_path = os.path.join(os.getcwd(), 'data', 'sample_images')
-    #     maximum = 10
-    #     if len(os.listdir(base_path)) >= maximum and not self.force_update:
-    #         return
-    #
-    #     for index, image in enumerate(self.train.data):
-    #         image_copy = np.copy(image)
-    #         if index >= maximum:
-    #             break
-    #
-    #         annotations = self.train.labels[index]
-    #         for annotation in annotations:
-    #             _, _, label_index, pt1_y, pt1_x, pt2_y, pt2_x = annotation
-    #             pt1 = pt1_x, pt1_y
-    #             pt2 = pt2_x, pt2_y
-    #             cv2.rectangle(image_copy, pt1, pt2, (255, 255, 255), thickness=1)
-    #             cv2.putText(image_copy, str(self.classes_name[label_index]), (pt1_x, pt1_y - 3),
-    #                         cv2.FONT_HERSHEY_SIMPLEX, 0.2, (255, 255, 255))
-    #
-    #         plt.imshow(image_copy, cmap='gray')
-    #         plt.savefig(os.path.join(base_path, '{}.png'.format(index)))
-    #         plt.close(plt.gcf())
-
-
-
-
-
-
-
-
-
-
-
-    # def build_data_set(self, train, test, validation, classes_names):
-    #     if self.loaded and not self.force_update:
-    #         return
-    #
-    #     self._build_object_detection_data_set(train, self.train)
-    #     self._build_object_detection_data_set(test, self.test)
-    #     self._build_object_detection_data_set(validation, self.validation)
-    #     self.classes_name = classes_names
-    #
-    #     self.save_dataset()
-    #
-    # def _build_object_detection_data_set(self, raw_data_set, combined_data_set):
-    #     total_amt_images = len(raw_data_set.data)
-    #     images_amt_per_canvas = 4
-    #     amt_divisible = (total_amt_images // images_amt_per_canvas) * images_amt_per_canvas
-    #
-    #     raw_data_set.data = raw_data_set.data * 255
-    #     raw_data_set.data = raw_data_set.data.astype(np.uint8)
-    #     raw_data_set.data = raw_data_set.data[:amt_divisible, :, :]
-    #     raw_data_set.data = raw_data_set.data.reshape((total_amt_images // images_amt_per_canvas,
-    #                                                    images_amt_per_canvas,
-    #                                                    raw_data_set.data.shape[1],
-    #                                                    raw_data_set.data.shape[2]))
-    #
-    #     raw_data_set.labels = np.argmax(raw_data_set.labels, axis=1).astype(np.uint8)
-    #     raw_data_set.labels = raw_data_set.labels[:amt_divisible]
-    #     raw_data_set.labels = raw_data_set.labels.reshape(
-    #         (total_amt_images // images_amt_per_canvas,
-    #          images_amt_per_canvas))
-    #
-    #     self._combine_drawings(raw_data_set, combined_data_set)
-
-    # def _combine_drawings(self, raw_data_set, combined_data_set):
-    #     combined_data_set.data = np.zeros(
-    #         (raw_data_set.data.shape[0], self.canvas_size[0], self.canvas_size[1]),
-    #         dtype=np.uint8)
-    #
-    #     combined_data_set.labels = np.zeros(
-    #         (raw_data_set.labels.shape[0], raw_data_set.labels.shape[1]),
-    #         dtype=self.labels_type)
-    #     for index, (drawings_group, labels_group) in enumerate(
-    #             zip(raw_data_set.data, raw_data_set.labels)):
-    #         canvas, annotation = self._combine_drawings_group(drawings_group, labels_group)
-    #         combined_data_set.data[index, :, :] = canvas
-    #         combined_data_set.labels[index, :] = annotation
