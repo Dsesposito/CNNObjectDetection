@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 from object_detection.utils import label_map_util, visualization_utils
 
+import utils
+
 
 class ObjectDetectionInference(object):
     def __init__(self):
@@ -79,22 +81,24 @@ class ObjectDetectionInference(object):
         (boxes, scores, classes, num_detections) = sess.run(
             [boxes, scores, classes, num_detections],
             feed_dict={image_tensor: image_expanded})
-        detected_image = visualization_utils.visualize_boxes_and_labels_on_image_array(
+        detected_image = utils.visualize_boxes_and_labels_on_image_array(
             image,
             np.squeeze(boxes),
             np.squeeze(classes).astype(np.int32),
             np.squeeze(scores),
             self.category_index,
-            use_normalized_coordinates=True,
+            min_scores_thresh={
+                'hand': 0.8, 'sun': 0.3, 'star': 0.3, 't-shirt': 0.8, 'house': 0.2, 'barn': 0.2,
+                'pants': 0.8, 'smiley face': 0.8, 'shorts': 0.8, 'face': 0.8, 'moon': 0.3,
+                'leg': 0.8, 'foot': 0.8, 'cloud': 0.2, 'shoe': 0.8, 'tree': 0.2, 'rain': 0.8,
+                'others': 0.8
+            },
             line_thickness=1,
-            skip_scores=True,
-            skip_track_ids=True,
-            min_score_thresh=0.2
         )
         return detected_image
 
     def process_real_images(self):
-        image_name = '2'
+        image_name = '3'
         img_path = os.path.join(self.real_images_path, '{}.jpg'.format(image_name))
         image = cv2.imread(img_path)
 

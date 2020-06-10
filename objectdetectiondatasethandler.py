@@ -77,11 +77,10 @@ class ObjectDetectionDataSetHandler(object):
             for i in range(amt_classes):
                 start_index = (i*images_per_class)+(j*total_amt_images)
                 end_index = ((i+1)*images_per_class)+(j*total_amt_images)
-                random_indexes[start_index: end_index, :
-                ] = list(zip(
-                        range(images_per_class),
-                        i*np.ones((images_per_class, ), dtype=np.uint64)
-                    ))
+                random_indexes[start_index: end_index, :] = list(zip(
+                    range(images_per_class),
+                    i*np.ones((images_per_class, ), dtype=np.uint64)
+                ))
 
         np.random.shuffle(random_indexes)
 
@@ -271,3 +270,58 @@ class ObjectDetectionDataSetHandler(object):
             'image/object/class/label': dataset_util.int64_list_feature(classes),
         }))
         return tf_example
+
+    def combine_example(self):
+        group = np.zeros(
+            (4, 100, 100, 4),
+            dtype=np.float32
+        )
+
+        examples_quickdraw_path = os.path.join(self.data_path, 'examples_quickdraw')
+        group[0, :, :, :] = plt.imread(os.path.join(examples_quickdraw_path, 'house.png'))
+        group[1, :, :, :] = plt.imread(os.path.join(examples_quickdraw_path, 'sun.png'))
+        group[2, :, :, :] = plt.imread(os.path.join(examples_quickdraw_path, 'tree.png'))
+        group[3, :, :, :] = plt.imread(os.path.join(examples_quickdraw_path, 'umbrella.png'))
+        classes_name = ['house', 'sun', 'tree', 'umbrella']
+
+        canvas = np.ones((400, 400, 3), dtype=np.uint8) * 255
+
+        canvas_grid = list(itertools.product(range(self.grid_size[0]), range(self.grid_size[1])))
+        grid_w, grid_h = ((self.canvas_size[0]) // self.grid_size[0],
+                          (self.canvas_size[1]) // self.grid_size[1])
+
+        amt_drawings_per_group = group.shape[0]
+        drawing_width = group.shape[1]
+        drawing_height = group.shape[2]
+        grid_locations_indexes = np.random.choice(range(len(canvas_grid)), amt_drawings_per_group,
+                                                  replace=False)
+
+        for (i, (drawing, class_name)) in enumerate(zip(group, classes_name)):
+            image_size_x, image_size_y, _ = drawing.shape
+
+            grid_locations = canvas_grid[grid_locations_indexes[i]]
+            random_displacement = np.random.randint(0, (grid_w - drawing_width))
+            random_corner_x = grid_locations[0] * grid_w + random_displacement
+            random_displacement = np.random.randint(0, (grid_h - drawing_height))
+            random_corner_y = grid_locations[1] * grid_h + random_displacement
+
+            pt1_y, pt1_x = random_corner_y, random_corner_x
+            pt2_y, pt2_x = random_corner_y + image_size_y, random_corner_x + image_size_x
+            drawing_alpha_channel = drawing[:, :, 3]
+            drawing_alpha_channel = drawing_alpha_channel[:, :, np.newaxis]
+            jpg_drawing = ((1 - np.repeat(drawing_alpha_channel, 3, 2)) * 255).astype(np.uint8)
+            canvas[pt1_y: pt2_y, pt1_x: pt2_x, :] = jpg_drawing
+
+            pt1 = (pt1_x, pt1_y)
+            pt2 = (pt2_x, pt2_y)
+
+            cv2.rectangle(canvas, pt1, pt2, (0, 0, 0), thickness=1)
+            cv2.putText(
+                canvas, class_name, (pt1_x, pt1_y - 10), cv2.FONT_HERSHEY_SIMPLEX,
+                0.5, (0, 0, 0), 1
+            )
+
+        output_path = os.path.join(examples_quickdraw_path, 'combined_example.jpg')
+        plt.imsave(output_path, canvas, format='jpg', vmin=0, vmax=255)
+
+
