@@ -72,17 +72,25 @@ scp -r -i ~/Trabajo/Optiwe/platform.pem /home/dsesposito/Repositorios/personales
  * Execute the train script:
 
 ```
-export PIPELINE_CONFIG_PATH=/home/ubuntu/object_detection/CNNObjectDetection/models/ssd_inception_v2_coco/ssd_inception_v2_coco.config MODEL_DIR=/home/ubuntu/object_detection/CNNObjectDetection/models/model NUM_TRAIN_STEPS=50000 SAMPLE_1_OF_N_EVAL_EXAMPLES=1
+export PIPELINE_CONFIG_PATH=/home/ubuntu/object_detection/CNNObjectDetection/models/ssd_inception_v2_coco/ssd_inception_v2_coco.config MODEL_DIR=/home/ubuntu/object_detection/CNNObjectDetection/models/model NUM_TRAIN_STEPS=200000 SAMPLE_1_OF_N_EVAL_EXAMPLES=1
 ```
 ```
 python object_detection/model_main.py --pipeline_config_path=${PIPELINE_CONFIG_PATH} --model_dir=${MODEL_DIR} --num_train_steps=${NUM_TRAIN_STEPS} --sample_1_of_n_eval_examples=$SAMPLE_1_OF_N_EVAL_EXAMPLES --alsologtostderr
 ```
 
+or
+
 ```
 nohup python object_detection/model_main.py --pipeline_config_path=${PIPELINE_CONFIG_PATH} --model_dir=${MODEL_DIR} --num_train_steps=${NUM_TRAIN_STEPS} --sample_1_of_n_eval_examples=$SAMPLE_1_OF_N_EVAL_EXAMPLES --alsologtostderr > output.log & 
 ```
 
-  * Run tensorboard: `tensorboard --logdir=${MODEL_DIR}` or `nohup tensorboard --logdir=${MODEL_DIR} > tensorboardoutput.log &`
+  * Run tensorboard: 
+  
+ ```tensorboard --logdir=${MODEL_DIR}``` 
+ 
+ or 
+ 
+ ```nohup tensorboard --logdir=${MODEL_DIR} > tensorboardoutput.log &```
 
 ## Inference
 
@@ -110,10 +118,28 @@ python object_detection/export_inference_graph.py \
 zip -r checkpoint_model.zip checkpoint_model/
 ```
 
+ * Export events
+ 
+```
+cd ~/object_detection/CNNObjectDetection/models/events
+mkdir train
+mkdir eval
+cd train
+cp ../../model/events.out.tfevents.* ./*
+cd ..
+cd  eval
+cp ../../model/eval_0/events.out.tfevents.* ./*
+cd ../../
+zip -r events.zip events/
+```
+
+
+
 ### Download model
 
 ```
 scp -i ~/Trabajo/Optiwe/platform.pem ubuntu@AWS_IP:/home/ubuntu/object_detection/CNNObjectDetection/models/checkpoint_model.zip ~/Downloads
+scp -i ~/Trabajo/Optiwe/platform.pem ubuntu@AWS_IP:/home/ubuntu/object_detection/CNNObjectDetection/models/events.zip ~/Downloads
 ```
 
 ### Inference on test dataset locally

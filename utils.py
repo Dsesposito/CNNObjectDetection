@@ -1,6 +1,8 @@
 import collections
 from collections import Iterable
 
+import cv2
+import numpy
 from object_detection.utils.visualization_utils import draw_bounding_box_on_image_array, \
     STANDARD_COLORS
 
@@ -11,12 +13,9 @@ class DataLabel(object):
         self.labels = None
 
 
-def visualize_boxes_and_labels_on_image_array(
+def draw_boxes_on_image(
         image, boxes, classes, scores, category_index, min_scores_thresh,
         line_thickness=4):
-
-    box_to_display_str_map = collections.defaultdict(list)
-    box_to_color_map = collections.defaultdict(str)
 
     if not isinstance(min_scores_thresh, Iterable):
         min_scores_thresh_per_class = {
@@ -36,26 +35,31 @@ def visualize_boxes_and_labels_on_image_array(
             for class_data in category_index.values()
         }
 
+    drawn_boxes = []
     for i in range(boxes.shape[0]):
         class_name = category_index[classes[i]]['name']
 
         if scores[i] < min_scores_thresh_per_class[class_name]:
             continue
 
-        box = tuple(boxes[i].tolist())
+        drawn_boxes.append((class_name, boxes[i]))
 
-        display_str = str(class_name)
-        box_to_display_str_map[box].append(display_str)
-
-        box_to_color_map[box] = STANDARD_COLORS[
-            classes[i] % len(STANDARD_COLORS)]
-
-    for box, color in box_to_color_map.items():
+    for class_name, box in drawn_boxes:
+        height, width = image.shape[:2]
         ymin, xmin, ymax, xmax = box
-        draw_bounding_box_on_image_array(
-            image, ymin, xmin, ymax, xmax, color=color, thickness=line_thickness,
-            display_str_list=box_to_display_str_map[box],
-            use_normalized_coordinates=True
+        pt1 = pt1_x, pt1_y = (int(xmin*width), int(ymin*height))
+        pt2 = pt2_x, pt2_y = (int(xmax*width), int(ymax*height))
+        color = list(numpy.random.random(size=3) * 256)
+        cv2.rectangle(image, pt1, pt2, color, thickness=2)
+        cv2.putText(
+            image, class_name, (pt1_x, pt1_y - 10), cv2.FONT_HERSHEY_PLAIN,
+            1, (0, 0, 0), 2
         )
+        # ymin, xmin, ymax, xmax = box
+        # draw_bounding_box_on_image_array(
+        #     image, ymin, xmin, ymax, xmax, color=color, thickness=line_thickness,
+        #     display_str_list=,
+        #     use_normalized_coordinates=True
+        # )
 
     return image
