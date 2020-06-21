@@ -51,15 +51,16 @@ def draw_boxes_on_image(
         pt2 = pt2_x, pt2_y = (int(xmax*width), int(ymax*height))
         color = list(numpy.random.random(size=3) * 256)
         cv2.rectangle(image, pt1, pt2, color, thickness=2)
+
+        font_face = cv2.FONT_HERSHEY_PLAIN
+        thickness = 1
+        baseline = 0
+        ((text_width, text_height), _) = cv2.getTextSize(class_name, font_face, thickness, baseline)
+
+        #cv2.rectangle(image, pt1, (pt1_x + text_width, pt1_y + text_height), (255, 255, 255), -1)
         cv2.putText(
-            image, class_name, (pt1_x, pt1_y - 10), cv2.FONT_HERSHEY_PLAIN,
-            1, (0, 0, 0), 2
+            image, class_name, (pt1_x + 2*thickness, pt1_y + text_height + 2*thickness),
+            fontFace=font_face, fontScale=1, color=(0, 0, 0), thickness=thickness
         )
-        # ymin, xmin, ymax, xmax = box
-        # draw_bounding_box_on_image_array(
-        #     image, ymin, xmin, ymax, xmax, color=color, thickness=line_thickness,
-        #     display_str_list=,
-        #     use_normalized_coordinates=True
-        # )
 
     return image

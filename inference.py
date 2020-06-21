@@ -1,5 +1,7 @@
 import csv
 import os
+import random
+import string
 from enum import Enum
 
 import numpy as np
@@ -22,7 +24,12 @@ class ObjectDetectionInference(object):
         self.source_images_path = os.path.join(self.data_path, 'quick_draw_images')
         self.detected_images_path = os.path.join(self.data_path, 'detected_images')
         self.test_images_path = os.path.join(self.data_path, 'combined_drawings', 'test')
-        self.real_images_path = os.path.join(self.data_path, 'real_images')
+        self.projective_test_person_under_rain_images_path = os.path.join(
+            self.data_path, 'projective_test_images', 'person_under_rain')
+        self.projective_test_landscape_images_path = os.path.join(
+            self.data_path, 'projective_test_images', 'landscape')
+        self.projective_tests_detected_images_path = os.path.join(
+            self.data_path, 'projective_test_images', 'detection')
 
         self.model_dir = os.path.join(
             os.getcwd(), 'models', 'checkpoint_model',
@@ -74,9 +81,17 @@ class ObjectDetectionInference(object):
                         filename, file_extension = os.path.splitext(row['file_name'])
                         img_path = os.path.join(
                             self.detected_images_path, '{}.png'.format(filename))
-                        plt.imshow(detected_image)
-                        plt.savefig(img_path)
-                        plt.close(plt.gcf())
+
+                        self.draw_image_on_plot(detected_image, img_path)
+
+    def draw_image_on_plot(self, image, output_path):
+        fig = plt.figure(frameon=False)
+        ax = plt.Axes(fig, [0., 0., 1., 1.])
+        ax.set_axis_off()
+        fig.add_axes(ax)
+        ax.imshow(image, aspect='auto')
+        plt.savefig(output_path, bbox_inches='tight', pad_inches=0)
+        plt.close(plt.gcf())
 
     def detect_on_image(self, image, sess, case=None):
         image_expanded = image[np.newaxis, :, :]
@@ -105,29 +120,67 @@ class ObjectDetectionInference(object):
             return 0.5
         elif case == InferenceCase.PEOPLE_UNDER_RAIN:
             return {
-                'hand': 0.8, 'sun': 0.3, 'star': 0.3, 't-shirt': 0.8, 'house': 0.2, 'barn': 0.2,
-                'pants': 0.8, 'smiley face': 0.8, 'shorts': 0.8, 'face': 0.8, 'moon': 0.3,
-                'leg': 0.8, 'foot': 0.8, 'cloud': 0.2, 'shoe': 0.8, 'tree': 0.2, 'rain': 0.8,
-                'others': 0.8
+                'hand': 0.3, 'sun': 0.3, 'star': 0.3, 't-shirt': 0.3, 'house': 0.8, 'barn': 0.8,
+                'pants': 0.3, 'umbrella': 0.1, 'smiley face': 0.3, 'shorts': 0.3, 'face': 0.3,
+                'moon': 0.3, 'leg': 0.9, 'foot': 0.6, 'cloud': 0.3, 'shoe': 0.3, 'tree': 0.8,
+                'rain': 0.8, 'others': 0.8
             }
         elif case == InferenceCase.HOUSE_TREE_PEOPLE:
-            return 0.5
+            return {
+                'hand': 0.8, 'sun': 0.3, 'star': 0.3, 't-shirt': 0.8, 'house': 0.5, 'barn': 0.5,
+                'pants': 0.8, 'umbrella': 0.8, 'smiley face': 0.8, 'shorts': 0.8, 'face': 0.8,
+                'moon': 0.3, 'leg': 0.95, 'foot': 0.8, 'cloud': 0.7, 'shoe': 0.8, 'tree': 0.3,
+                'rain': 0.9, 'others': 0.8
+            }
         else:
             return 0.5
 
-    def process_real_images(self):
-        image_name = '3'
-        img_path = os.path.join(self.real_images_path, '{}.jpg'.format(image_name))
-        image = cv2.imread(img_path)
+    def evaluate_projective_test(self, images_files_path, case):
+        for image_path in images_files_path:
+            image = np.array(
+                plt.imread(image_path)
+            )
 
-        with self.detection_graph.as_default():
-            with tf.Session(graph=self.detection_graph) as sess:
-                detected_image = self.detect_on_image(image, sess)
+            with self.detection_graph.as_default():
+                with tf.Session(graph=self.detection_graph) as sess:
+                    detected_image = self.detect_on_image(image, sess, case)
 
-                img_path = os.path.join(self.real_images_path, '{}d.png'.format(image_name))
-                plt.imshow(detected_image)
-                plt.savefig(img_path)
-                plt.close(plt.gcf())
+                    file_name = '{}.png'.format(
+                        ''.join(random.choices(string.ascii_letters + string.digits, k=16)))
+
+                    detected_img_path = os.path.join(
+                        self.projective_tests_detected_images_path, file_name
+                    )
+
+                    self.draw_image_on_plot(detected_image, detected_img_path)
+
+    def evaluate_person_under_rain(self):
+        images_files_path = [
+            os.path.join(
+                self.projective_test_person_under_rain_images_path, file_name
+            ) for file_name in
+            os.listdir(self.projective_test_person_under_rain_images_path)
+            if not os.path.isdir(
+                os.path.join(self.projective_test_person_under_rain_images_path, file_name)
+            )
+        ]
+
+        self.evaluate_projective_test(images_files_path, case=InferenceCase.PEOPLE_UNDER_RAIN)
+
+    def evaluate_landscape(self):
+        images_files_path = [
+            os.path.join(self.projective_test_landscape_images_path, file_name) for file_name in
+            os.listdir(self.projective_test_landscape_images_path)
+            if not os.path.isdir(
+                os.path.join(self.projective_test_landscape_images_path, file_name)
+            )
+        ]
+
+        self.evaluate_projective_test(images_files_path, case=InferenceCase.HOUSE_TREE_PEOPLE)
+
+    def evaluate_projective_tests(self):
+        self.evaluate_person_under_rain()
+        self.evaluate_landscape()
 
     def plot_train_metrics(self):
         events_path = os.path.join(os.getcwd(), 'models', 'events')
