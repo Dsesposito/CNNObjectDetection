@@ -6,6 +6,7 @@ This repo contains the code used to create an object detector which could been u
 
 Create the following directories structure
 
+```
  data
  ----> combined_drawings
        ----> test
@@ -19,6 +20,7 @@ Create the following directories structure
        ----> person_under_rain
  ----> quick_draw_images
  ----> tf_records
+```
 
 ## Available commands:
 
